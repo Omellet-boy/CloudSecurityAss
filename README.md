@@ -10,6 +10,7 @@ cd alumni-frontend
 # 3. Install the required libraries (Router and Axios)
 npm install react-router-dom axios
 
+look in edit view for better structure ;;
 alumni-frontend/
 ├── package.json
 ├── public/
