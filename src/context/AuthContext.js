@@ -12,9 +12,9 @@ export const AuthProvider = ({ children }) => {
   alumni_id: 1, 
   full_name: "Lil Nigma", 
   email: "ling@student.mmu.edu.my", 
-  role: "alumni" 
+  role: "admin" 
 });
-const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(true);
 
   // Check if user is already logged in on page load
   useEffect(() => {
@@ -55,7 +55,7 @@ const [loading, setLoading] = useState(false);
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
