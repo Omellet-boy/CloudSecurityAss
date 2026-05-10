@@ -28,3 +28,5 @@ alumni-frontend/
         ├── Register.css       
         ├── AlumniDashboard.js
         └── Dashboard.css      
+
+JWT_SECRET : Qwerty123456
