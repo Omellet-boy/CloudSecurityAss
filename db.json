@@ -1,0 +1,46 @@
+{
+  "users": [
+    {
+      "user_id": 1778375705513,
+      "email": "cemex74686@deapad.com",
+      "password_hash": "$2b$10$AxaI/v5sfa8FGCwh2VB5qOf08pmuFPbJdsGV14EWJUvSe4aS9qzMi",
+      "role": "alumni",
+      "is_active": 1,
+      "created_at": "2026-05-10T01:15:05.513Z"
+    },
+    {
+      "user_id": 1778405242014,
+      "email": "lingyikfong0105@gmail.com",
+      "password_hash": "$2b$10$r9sIQIgyIe7.RNdt1a8dhexMhHNNMz.qcNAbiSJFAHYKHuXO9EKje",
+      "role": "alumni",
+      "is_active": 1,
+      "created_at": "2026-05-10T09:27:22.014Z"
+    }
+  ],
+  "alumni": [
+    {
+      "alumni_id": 1778375705514,
+      "user_id": 1778375705513,
+      "full_name": "JACOB",
+      "batch_year": 2022,
+      "programme": "Bachelor of Computer Science (Software Engineering)",
+      "phone": "",
+      "nric_encrypted": "encrypted_data_placeholder",
+      "address_encrypted": "encrypted_data_placeholder",
+      "updated_at": "2026-05-10T01:15:05.513Z"
+    },
+    {
+      "alumni_id": 1778405242015,
+      "user_id": 1778405242014,
+      "full_name": "ling yik fong",
+      "batch_year": 2004,
+      "programme": "Bachelor of Computer Science (Cybersecurity)",
+      "phone": "01127270286",
+      "nric_encrypted": "encrypted_data_placeholder",
+      "address_encrypted": "encrypted_data_placeholder",
+      "updated_at": "2026-05-10T09:27:22.014Z"
+    }
+  ],
+  "donations": [],
+  "auditLogs": []
+}
