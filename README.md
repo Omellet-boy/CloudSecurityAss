@@ -1,37 +1,20 @@
-# CloudSecurityAss
-# IMPORTANT !!!
-FRONT END HOW TO RUN:
-# 1. Create a new React application
-npx create-react-app alumni-frontend
-or 
-Just npm install (if you already have the folder)
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-# 2. Go into the project folder
-cd alumni-frontend
+# Run and deploy your AI Studio app
 
-# 3. Install the required libraries (Router and Axios)
-npm install react-router-dom axios
+This contains everything you need to run your app locally.
 
-# 4. RUN WITH THIS !
-NPM RUN DEV
+View your app in AI Studio: https://ai.studio/apps/06435ee3-3b24-4914-9895-d4a2e6cc11c4
 
-# look in edit view for better structure ;;
-alumni-frontend/
-├── package.json
-├── public/
-│   └── index.html
-└── src/
-    ├── App.js                 
-    ├── api.js                 
-    ├── index.js               
-    ├── context/
-    │   └── AuthContext.js     
-    └── pages/
-        ├── Login.js           
-        ├── Login.css          
-        ├── Register.js       
-        ├── Register.css       
-        ├── AlumniDashboard.js
-        └── Dashboard.css      
+## Run Locally
 
-JWT_SECRET : Qwerty123456
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
