@@ -1,3 +1,4 @@
+// Version2/server.ts
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -6,6 +7,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cors from "cors";
 import fs from "fs";
+import { body, validationResult } from "express-validator";
+import sql from "mssql";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,25 +16,25 @@ const __dirname = path.dirname(__filename);
 const PORT = 3000;
 const SECRET_KEY = process.env.JWT_SECRET || "mmu-alumni-portal-secret-key-2025";
 
-// Simple JSON Database (Mocking MS SQL Server for this environment)
-const DB_PATH = path.join(__dirname, "db.json");
+// MS SQL Server Configuration (VirtualBox VM)
+const sqlConfig = {
+  user: 'Alumni sa', 
+  password: 'AlumniDbAdmin123!',
+  database: 'AlumniDB',
+  server: '192.168.0.141',
+  options: {
+    encrypt: true, 
+    trustServerCertificate: true 
+  }
+};
 
-if (!fs.existsSync(DB_PATH)) {
-  fs.writeFileSync(DB_PATH, JSON.stringify({
-    users: [],
-    alumni: [],
-    donations: [],
-    auditLogs: [],
-  }, null, 2));
-}
-
-function getDB() {
-  return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-}
-
-function saveDB(db: any) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-}
+// Global Database Connection Pool
+const poolPromise = sql.connect(sqlConfig)
+  .then(pool => {
+    console.log('✅ Connected to MS SQL Server in VirtualBox');
+    return pool;
+  })
+  .catch(err => console.error('❌ Database Connection Failed: ', err));
 
 async function startServer() {
   const app = express();
@@ -40,90 +43,126 @@ async function startServer() {
 
   // --- API Routes ---
 
-  // Auth: Register
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const { full_name, email, password, batch_year, programme, phone } = req.body;
-      const db = getDB();
+  // Auth: Register (Secured with Validation & SQL Injection Protection)
+  app.post("/api/auth/register", 
+    [
+      body('email').isEmail().withMessage('Must be a valid email address').normalizeEmail(),
+      body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters').trim().escape(),
+      body('full_name').notEmpty().withMessage('Name is required').trim().escape(),
+      body('batch_year').isInt({ min: 1990, max: 2030 }).withMessage('Invalid batch year').toInt(),
+      body('programme').optional().trim().escape(),
+      body('phone').optional().trim().escape()
+    ], 
+    async (req: any, res: any) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-      if (db.users.find((u: any) => u.email === email)) {
-        return res.status(400).json({ success: false, message: "Email already registered" });
+        const { full_name, email, password, batch_year, programme, phone } = req.body;
+        const pool = await poolPromise;
+        if (!pool) throw new Error("Database not connected");
+
+        // Check if user exists
+        const checkUser = await pool.request()
+          .input('email', sql.VarChar, email)
+          .query('SELECT 1 FROM Users WHERE email = @email');
+
+        if (checkUser.recordset.length > 0) {
+          return res.status(400).json({ success: false, message: "Email already registered" });
+        }
+
+        const password_hash = await bcrypt.hash(password, 10);
+        const user_id = Date.now(); // Using timestamp as BIGINT for simplicity
+        const alumni_id = user_id + 1;
+        const now = new Date();
+
+        // Insert User
+        await pool.request()
+          .input('user_id', sql.BigInt, user_id)
+          .input('email', sql.VarChar, email)
+          .input('password_hash', sql.VarChar, password_hash)
+          .input('role', sql.VarChar, 'alumni')
+          .input('is_active', sql.Int, 1)
+          .input('created_at', sql.DateTime, now)
+          .query('INSERT INTO Users (user_id, email, password_hash, role, is_active, created_at) VALUES (@user_id, @email, @password_hash, @role, @is_active, @created_at)');
+
+        // Insert Alumni Data
+        await pool.request()
+          .input('alumni_id', sql.BigInt, alumni_id)
+          .input('user_id', sql.BigInt, user_id)
+          .input('full_name', sql.VarChar, full_name)
+          .input('batch_year', sql.Int, batch_year)
+          .input('programme', sql.VarChar, programme || '')
+          .input('phone', sql.VarChar, phone || '')
+          .input('nric_encrypted', sql.VarChar, 'encrypted_data_placeholder')
+          .input('address_encrypted', sql.VarChar, 'encrypted_data_placeholder')
+          .input('updated_at', sql.DateTime, now)
+          .query('INSERT INTO Alumni (alumni_id, user_id, full_name, batch_year, programme, phone, nric_encrypted, address_encrypted, updated_at) VALUES (@alumni_id, @user_id, @full_name, @batch_year, @programme, @phone, @nric_encrypted, @address_encrypted, @updated_at)');
+
+        res.json({ success: true, message: "Registration successful" });
+      } catch (error) {
+        console.error("Registration Error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
       }
-
-      const password_hash = await bcrypt.hash(password, 10);
-      const user_id = Date.now();
-      const alumni_id = user_id + 1;
-
-      const newUser = {
-        user_id,
-        email,
-        password_hash,
-        role: "alumni",
-        is_active: 1,
-        created_at: new Date().toISOString()
-      };
-
-      const newAlumni = {
-        alumni_id,
-        user_id,
-        full_name,
-        batch_year,
-        programme,
-        phone, // In a real app, this would be masked/encrypted as per proposal
-        nric_encrypted: "encrypted_data_placeholder",
-        address_encrypted: "encrypted_data_placeholder",
-        updated_at: new Date().toISOString()
-      };
-
-      db.users.push(newUser);
-      db.alumni.push(newAlumni);
-      saveDB(db);
-
-      res.json({ success: true, message: "Registration successful" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Internal server error" });
     }
-  });
+  );
 
   // Auth: Login
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const db = getDB();
-      const user = db.users.find((u: any) => u.email === email);
+  app.post("/api/auth/login", 
+    [
+      body('email').isEmail().normalizeEmail(),
+      body('password').notEmpty().trim()
+    ],
+    async (req: any, res: any) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-      if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
-      }
+        const { email, password } = req.body;
+        const pool = await poolPromise;
+        if (!pool) throw new Error("Database not connected");
 
-      const alumni = db.alumni.find((a: any) => a.user_id === user.user_id);
-      const token = jwt.sign({ 
-        user_id: user.user_id, 
-        role: user.role, 
-        alumni_id: alumni?.alumni_id 
-      }, SECRET_KEY, { expiresIn: "1h" });
+        const result = await pool.request()
+          .input('email', sql.VarChar, email)
+          .query(`
+            SELECT u.user_id, u.email, u.password_hash, u.role, a.alumni_id, a.full_name 
+            FROM Users u
+            LEFT JOIN Alumni a ON u.user_id = a.user_id
+            WHERE u.email = @email
+          `);
 
-      res.json({
-        success: true,
-        token,
-        user: {
-          user_id: user.user_id,
-          alumni_id: alumni?.alumni_id,
-          full_name: alumni?.full_name,
-          email: user.email,
-          role: user.role
+        const user = result.recordset[0];
+
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+          return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
-      });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Internal server error" });
-    }
+
+        const token = jwt.sign({ 
+          user_id: user.user_id, 
+          role: user.role, 
+          alumni_id: user.alumni_id 
+        }, SECRET_KEY, { expiresIn: "1h" });
+
+        res.json({
+          success: true, token,
+          user: {
+            user_id: user.user_id,
+            alumni_id: user.alumni_id,
+            full_name: user.full_name,
+            email: user.email,
+            role: user.role
+          }
+        });
+      } catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+      }
   });
 
-  // Middleware: Auth
+  // Middleware: Auth Token Verification
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (!token) return res.sendStatus(401);
 
     jwt.verify(token, SECRET_KEY, (err: any, user: any) => {
@@ -133,74 +172,130 @@ async function startServer() {
     });
   };
 
-  // Profile: Get Own Profile
-  app.get("/api/alumni/:id", authenticateToken, (req: any, res) => {
-    const db = getDB();
-    const alumni = db.alumni.find((a: any) => a.alumni_id === parseInt(req.params.id));
+  // Directory: Get public/masked alumni list
+  app.get("/api/directory", authenticateToken, async (req: any, res: any) => {
+    try {
+      const pool = await poolPromise;
+      if (!pool) throw new Error("Database not connected");
 
-    if (!alumni) return res.status(404).json({ success: false, message: "Alumni not found" });
+      const result = await pool.request().query('SELECT alumni_id, full_name, batch_year, programme, phone FROM Alumni');
+      
+      const publicAlumni = result.recordset.map((a: any) => {
+        let maskedPhone = "N/A";
+        if (a.phone) {
+          const phoneStr = String(a.phone);
+          maskedPhone = phoneStr.length >= 4 ? "XXX-XXX-" + phoneStr.slice(-4) : "XXX-XXX-XXXX";
+        }
+        return {
+          alumni_id: a.alumni_id,
+          full_name: a.full_name,
+          batch_year: a.batch_year,
+          programme: a.programme,
+          phone: maskedPhone
+        };
+      });
 
-    // Security: Check if user is accessing their own profile (RLS simulation)
-    if (req.user.role !== 'admin' && req.user.alumni_id !== alumni.alumni_id) {
-      return res.status(403).json({ success: false, message: "Unauthorized access" });
+      res.json({ success: true, data: publicAlumni });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
+  });
 
-    const user = db.users.find((u: any) => u.user_id === alumni.user_id);
-    
-    // Privacy: Mask phone number for non-admins (Dynamic Data Masking simulation)
-    const profileData = {
-      ...alumni,
-      email: user.email,
-      last_login: user.last_login,
-      phone: req.user.role === 'admin' ? alumni.phone : alumni.phone?.replace(/(\d{3})-\d{3}-(\d{4})/, "$1-XXX-$2")
-    };
+  // Profile: Get Own Profile (RLS Simulation)
+  app.get("/api/alumni/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      const pool = await poolPromise;
+      if (!pool) throw new Error("Database not connected");
 
-    res.json({ success: true, data: profileData });
+      const result = await pool.request()
+        .input('alumni_id', sql.BigInt, parseInt(req.params.id))
+        .query(`
+          SELECT a.*, u.email, u.role
+          FROM Alumni a
+          JOIN Users u ON a.user_id = u.user_id
+          WHERE a.alumni_id = @alumni_id
+        `);
+
+      const profile = result.recordset[0];
+      if (!profile) return res.status(404).json({ success: false, message: "Alumni not found" });
+
+      if (req.user.role !== 'admin' && req.user.alumni_id !== profile.alumni_id) {
+        return res.status(403).json({ success: false, message: "Unauthorized access" });
+      }
+
+      // Dynamic Data Masking
+      const profileData = {
+        ...profile,
+        phone: req.user.role === 'admin' ? profile.phone : profile.phone?.replace(/(\d{3})-\d{3}-(\d{4})/, "$1-XXX-$2")
+      };
+
+      res.json({ success: true, data: profileData });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
   });
 
   // Donations: Get History
-  app.get("/api/donations", authenticateToken, (req: any, res) => {
-    const db = getDB();
-    let donations = db.donations;
+  app.get("/api/donations", authenticateToken, async (req: any, res: any) => {
+    try {
+      const pool = await poolPromise;
+      if (!pool) throw new Error("Database not connected");
 
-    // RLS: Alumni only see their own donations
-    if (req.user.role !== 'admin') {
-      donations = donations.filter((d: any) => d.alumni_id === req.user.alumni_id);
+      let query = 'SELECT * FROM Donations';
+      const request = pool.request();
+
+      // RLS: Alumni only see their own donations
+      if (req.user.role !== 'admin') {
+        query += ' WHERE alumni_id = @alumni_id';
+        request.input('alumni_id', sql.BigInt, req.user.alumni_id);
+      }
+
+      const result = await request.query(query);
+      res.json({ success: true, data: result.recordset });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
-
-    res.json({ success: true, data: donations });
   });
 
   // Donations: Make Donation
-  app.post("/api/donations", authenticateToken, (req: any, res) => {
-    const { amount, message } = req.body;
-    const db = getDB();
+  app.post("/api/donations", authenticateToken, async (req: any, res: any) => {
+    try {
+      const pool = await poolPromise;
+      if (!pool) throw new Error("Database not connected");
 
-    const donation = {
-      donation_id: Date.now(),
-      alumni_id: req.user.alumni_id,
-      amount,
-      message,
-      donated_at: new Date().toISOString(),
-      receipt_ref: "MMU-" + Math.random().toString(36).substring(2, 10).toUpperCase()
-    };
+      const { amount, message } = req.body;
+      const donation_id = Date.now();
+      const receipt_ref = "MMU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const now = new Date();
 
-    db.donations.push(donation);
+      await pool.request()
+        .input('donation_id', sql.BigInt, donation_id)
+        .input('alumni_id', sql.BigInt, req.user.alumni_id)
+        .input('amount', sql.Decimal(10, 2), amount)
+        .input('message', sql.VarChar, message || '')
+        .input('donated_at', sql.DateTime, now)
+        .input('receipt_ref', sql.VarChar, receipt_ref)
+        .query('INSERT INTO Donations (donation_id, alumni_id, amount, message, donated_at, receipt_ref) VALUES (@donation_id, @alumni_id, @amount, @message, @donated_at, @receipt_ref)');
 
-    // Audit Log: Records change
-    db.auditLogs.push({
-      log_id: Date.now(),
-      table_name: "DONATIONS",
-      action_type: "INSERT",
-      record_id: donation.donation_id,
-      changed_by: req.user.user_id,
-      new_value: JSON.stringify(donation),
-      changed_at: new Date().toISOString(),
-      ip_address: req.ip
-    });
+      // Audit Log
+      const audit_log_id = Date.now() + 1;
+      const logValue = JSON.stringify({ donation_id, amount, receipt_ref });
 
-    saveDB(db);
-    res.json({ success: true, receipt_ref: donation.receipt_ref });
+      await pool.request()
+        .input('log_id', sql.BigInt, audit_log_id)
+        .input('table_name', sql.VarChar, 'DONATIONS')
+        .input('action_type', sql.VarChar, 'INSERT')
+        .input('record_id', sql.BigInt, donation_id)
+        .input('changed_by', sql.BigInt, req.user.user_id)
+        .input('new_value', sql.VarChar, logValue)
+        .input('changed_at', sql.DateTime, now)
+        .input('ip_address', sql.VarChar, req.ip || 'unknown')
+        .query('INSERT INTO AuditLogs (log_id, table_name, action_type, record_id, changed_by, new_value, changed_at, ip_address) VALUES (@log_id, @table_name, @action_type, @record_id, @changed_by, @new_value, @changed_at, @ip_address)');
+
+      res.json({ success: true, receipt_ref });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
   });
 
   // --- Vite / Frontend Logic ---
@@ -211,14 +306,10 @@ async function startServer() {
     });
     app.use(vite.middlewares);
 
-    // Explicitly handle all non-API requests by serving index.html
     app.get('*', async (req: any, res: any, next: any) => {
-      // If it looks like an API call that wasn't caught, pass it on
       if (req.originalUrl.startsWith('/api')) return next();
-      
       try {
         let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
-        // Apply Vite HTML transforms (injects the Vite client)
         template = await vite.transformIndexHtml(req.originalUrl, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
@@ -228,9 +319,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
   }
 
   app.listen(PORT, "0.0.0.0", () => {
