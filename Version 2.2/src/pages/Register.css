@@ -1,0 +1,40 @@
+.register-card { max-width: 560px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(79, 195, 247, 0.18);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  color: #f0f4ff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  outline: none;
+  cursor: pointer;
+}
+
+.form-group select option { background: #112240; color: #f0f4ff; }
+
+.form-group select:focus {
+  border-color: #4fc3f7;
+  background: rgba(79,195,247,0.05);
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.1);
+}
+
+.success-banner {
+  background: rgba(67,233,123,0.12);
+  border: 1px solid rgba(67,233,123,0.4);
+  color: #7affa0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
