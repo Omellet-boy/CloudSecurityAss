@@ -63,6 +63,31 @@ To isolate the database from the application tier, we run MS SQL Server inside a
      options: { encrypt: true, trustServerCertificate: true }
    };
 
+### 3️⃣ Nginx & SSL Setup (Reverse Proxy)
+
+Nginx sits in front of the Node app to handle HTTPS encryption and forward clean traffic to Node.js.
+
+**1. Extract Nginx**
+* Extract Nginx to `C:\nginx`.
+
+**2. Generate Local SSL Certificates**
+* Open **Git Bash** or **Command Prompt** and execute the following commands to create your self-signed certificates:
+  ```bash
+  mkdir C:\nginx\ssl
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout C:\nginx\ssl\alumni.key -out C:\nginx\ssl\alumni.crt -subj "/CN=localhost"
+
+  3. Configure Nginx
+
+Replace the contents of C:\nginx\conf\nginx.conf with the project's secure Nginx configuration.
+(This configuration handles redirecting unsecured HTTP port 80 traffic to secure HTTPS port 443, and uses proxy_pass to route that traffic to http://127.0.0.1:3000).
+
+4. Start Nginx
+
+Start the Nginx server by running:
+
+Bash
+cd C:\nginx
+start nginx
 
 ## 3 Admin access
 1. change the role of the user in the users table in db to "admin" to access admin page
