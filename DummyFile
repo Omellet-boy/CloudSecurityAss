@@ -14,3 +14,19 @@ AS
         -- Otherwise, the UserId in the table must match the UserId the app sent
         OR @UserId = CAST(SESSION_CONTEXT(N'user_id') AS bigint);
 GO
+
+------------------------------------------------------------------------------------------------
+
+-- Lock the Alumni table so users only see their own profile
+CREATE SECURITY POLICY Security.AlumniFilter
+ADD FILTER PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Alumni,
+ADD BLOCK PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Alumni
+WITH (STATE = ON);
+GO
+
+-- Lock the Users table so users only see their own account info
+CREATE SECURITY POLICY Security.UserFilter
+ADD FILTER PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Users,
+ADD BLOCK PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Users
+WITH (STATE = ON);
+GO
