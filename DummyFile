@@ -33,21 +33,22 @@ GO
 
 ---------------------------------------------------------------------------------------------------
 
--- 1. Create the Login at the Server level (Master)
-USE [master]
-GO
-CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!', DEFAULT_DATABASE=[AlumniDB]
+-- 1. Switch to the database and drop the USER
+USE [AlumniDB];
+DROP USER IF EXISTS [AlumniAppUser];
 GO
 
--- 2. Now link that Login to a User in your AlumniDB
-USE [AlumniDB]
+-- 2. Switch to master and drop the LOGIN
+USE [master];
+DROP LOGIN IF EXISTS [AlumniAppUser];
 GO
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AlumniAppUser')
-BEGIN
-    CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser]
-END
+
+-- 3. Now create it fresh
+CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!', CHECK_POLICY = OFF;
 GO
-ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser]
-GO
-ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser]
+
+USE [AlumniDB];
+CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser];
+ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser];
+ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser];
 GO
