@@ -30,3 +30,24 @@ ADD FILTER PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Users,
 ADD BLOCK PREDICATE Security.fn_securitypredicate(user_id) ON dbo.Users
 WITH (STATE = ON);
 GO
+
+---------------------------------------------------------------------------------------------------
+
+-- 1. Create the Login at the Server level (Master)
+USE [master]
+GO
+CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!', DEFAULT_DATABASE=[AlumniDB]
+GO
+
+-- 2. Now link that Login to a User in your AlumniDB
+USE [AlumniDB]
+GO
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AlumniAppUser')
+BEGIN
+    CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser]
+END
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser]
+GO
+ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser]
+GO
