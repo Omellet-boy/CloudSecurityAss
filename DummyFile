@@ -32,27 +32,28 @@ WITH (STATE = ON);
 GO
 
 ---------------------------------------------------------------------------------------------------
-
--- 1. Remove the user from the database first
-USE [AlumniDB];
-GO
-IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'AlumniAppUser')
-    DROP USER [AlumniAppUser];
-GO
-
--- 2. Remove the login from the server
 USE [master];
 GO
-IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'AlumniAppUser')
-    DROP LOGIN [AlumniAppUser];
+
+-- This changes the login password at the server level
+ALTER LOGIN [AlumniAppUser] WITH PASSWORD = 'YourNewActualPassword123!';
 GO
 
--- 3. Create it fresh
-CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!!', CHECK_POLICY = OFF;
+-- Ensure the login is enabled
+ALTER LOGIN [AlumniAppUser] ENABLE;
 GO
+
 USE [AlumniDB];
 GO
-CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser];
+
+-- Ensure the user is mapped to the login in this specific DB
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'AlumniAppUser')
+BEGIN
+    CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser];
+END
+GO
+
+-- Ensure they have data access
 ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser];
 ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser];
 GO
