@@ -33,21 +33,25 @@ GO
 
 ---------------------------------------------------------------------------------------------------
 
--- 1. Switch to the database and drop the USER
+-- 1. Remove the user from the database first
 USE [AlumniDB];
-DROP USER IF EXISTS [AlumniAppUser];
+GO
+IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'AlumniAppUser')
+    DROP USER [AlumniAppUser];
 GO
 
--- 2. Switch to master and drop the LOGIN
+-- 2. Remove the login from the server
 USE [master];
-DROP LOGIN IF EXISTS [AlumniAppUser];
+GO
+IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'AlumniAppUser')
+    DROP LOGIN [AlumniAppUser];
 GO
 
--- 3. Now create it fresh
-CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!', CHECK_POLICY = OFF;
+-- 3. Create it fresh
+CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'AlumniDbAdmin123!!', CHECK_POLICY = OFF;
 GO
-
 USE [AlumniDB];
+GO
 CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser];
 ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser];
 ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser];
