@@ -1,18 +1,16 @@
--- 1. Create the Login at the Server level (Master)
-USE [master]
-GO
-CREATE LOGIN [AlumniAppUser] WITH PASSWORD = 'StrongPassword123!', DEFAULT_DATABASE=[AlumniDB]
-GO
-
--- 2. Now link that Login to a User in your AlumniDB
 USE [AlumniDB]
 GO
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AlumniAppUser')
-BEGIN
-    CREATE USER [AlumniAppUser] FOR LOGIN [AlumniAppUser]
-END
+CREATE SCHEMA Security;
 GO
-ALTER ROLE [db_datareader] ADD MEMBER [AlumniAppUser]
-GO
-ALTER ROLE [db_datawriter] ADD MEMBER [AlumniAppUser]
+
+CREATE FUNCTION Security.fn_securitypredicate(@UserId AS bigint)
+    RETURNS TABLE
+WITH SCHEMABINDING
+AS
+    RETURN SELECT 1 AS fn_securitypredicate_result
+    WHERE 
+        -- If the app tells SQL the role is 'admin', allow everything
+        CAST(SESSION_CONTEXT(N'user_role') AS varchar(50)) = 'admin' 
+        -- Otherwise, the UserId in the table must match the UserId the app sent
+        OR @UserId = CAST(SESSION_CONTEXT(N'user_id') AS bigint);
 GO
