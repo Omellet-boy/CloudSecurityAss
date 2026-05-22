@@ -346,6 +346,46 @@ async function startServer() {
     }
   });
 
+  app.delete("/api/admin/alumni/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: "Forbidden: Admins only" });
+      }
+
+      const pool = await poolPromise;
+      if (!pool) throw new Error("Database not connected");
+
+      const alumniId = parseInt(req.params.id);
+
+      // Delete from Alumni table
+      const result = await pool.request()
+        .input('alumni_id', sql.BigInt, alumniId)
+        .query('DELETE FROM Alumni WHERE alumni_id = @alumni_id');
+
+      if (result.rowsAffected[0] === 0) {
+        return res.status(404).json({ success: false, message: "Alumni not found" });
+      }
+
+      // Audit log the deletion
+      const audit_log_id = Date.now();
+      await pool.request()
+        .input('log_id', sql.BigInt, audit_log_id)
+        .input('table_name', sql.VarChar, 'ALUMNI')
+        .input('action_type', sql.VarChar, 'DELETE')
+        .input('record_id', sql.BigInt, alumniId)
+        .input('changed_by', sql.BigInt, req.user.user_id)
+        .input('new_value', sql.VarChar, `Deleted alumni_id: ${alumniId}`)
+        .input('changed_at', sql.DateTime, new Date())
+        .input('ip_address', sql.VarChar, req.ip || 'unknown')
+        .query('INSERT INTO AuditLogs (log_id, table_name, action_type, record_id, changed_by, new_value, changed_at, ip_address) VALUES (@log_id, @table_name, @action_type, @record_id, @changed_by, @new_value, @changed_at, @ip_address)');
+
+      res.json({ success: true, message: `Alumni ${alumniId} deleted` });
+    } catch (error) {
+      console.error("Delete Error:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  });
+
   app.put("/api/users/update-profile", authenticateToken, async (req: any, res: any) => {
     try {
       const { full_name, email } = req.body;
