@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useAuth} from '../context/AuthContext';
+import {useNavigate} from 'react-router-dom';
 import api from '../api';
 import './Dashboard.css';
 
-interface Donation {
+interface Donation{
     donation_id: number;
     receipt_ref: string;
     amount: number;
     donated_at: string;
     message: string;
-    alumni_id: number; // Added for Admin oversight
+    alumni_id: number; 
 }
 
-const AdminDonations: React.FC = () => {
+const AdminDonations: React.FC = () =>{
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     
@@ -22,7 +22,7 @@ const AdminDonations: React.FC = () => {
     const [selectedYear, setSelectedYear] = useState('All');
 
     useEffect(() => {
-        const fetchDonations = async () => {
+        const fetchDonations = async () =>{
             try {
                 const response = await api.get('/donations');
                 if (response.data.success) {
@@ -41,7 +41,7 @@ const AdminDonations: React.FC = () => {
         ? donations 
         : donations.filter(d => new Date(d.donated_at).getFullYear().toString() === selectedYear);
 
-    return (
+    return(
         <div className="dashboard-page">
             <nav className="sidebar">
                 <div className="sidebar-brand">
@@ -66,42 +66,38 @@ const AdminDonations: React.FC = () => {
                     <button className="nav-item" onClick={() => navigate('/admin')}>Admin Logs</button>
                 </div>
 
-                <button className="logout-btn" onClick={logout} style={{ marginTop: 'auto' }}>
-                    <span>🚪</span> Sign Out
-                </button>
+                <button className="logout-btn" onClick={logout} style={{marginTop: 'auto'}}>Sign Out</button>
             </nav>
             
 
             <main className="dash-main">
                 <header className="dash-header">
                     <h2>Global Donation Logs</h2>
-                    <div className="header-badge">Privileged Access Level: 4</div>
                 </header>
 
                 <div className="content-area">
-                    {/* TASK 5 EVIDENCE: SECURITY STATUS CARD */}
                     <div className="security-notice" style={{marginBottom: '20px', borderLeft: '5px solid var(--gold)'}}>
-                        <div className="notice-icon">🛡️</div>
                         <div>
-                            <p>This view bypasses standard Row-Level Security filters. Access is logged via SQL Server Audit and authenticated using a <strong>Managed Service Account (MSA)</strong> to protect database-tier credentials.</p>
+                            <p>Authenticated via <strong>Managed Service Account (MSA)</strong></p>
                         </div>
                     </div>
 
                     <div className="table-wrapper">
-                        <div style={{ padding: '15px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{padding: '15px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                             <h3 style={{fontSize: '0.9rem', color: 'var(--accent)'}}>GLOBAL TRANSACTION AUDIT</h3>
                             
-                            <div className="form-group" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <label style={{ fontSize: '0.75rem' }}>FILTER BY YEAR:</label>
+                            <div className="form-group" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <label style={{fontSize: '0.75rem'}}>FILTER BY YEAR:</label>
                                 <select 
                                     value={selectedYear} 
                                     onChange={(e) => setSelectedYear(e.target.value)}
-                                    style={{ background: '#112240', color: 'white', border: '1px solid var(--accent)', borderRadius: '4px', padding: '5px' }}
+                                    style={{background: '#112240', color: 'white', border: '1px solid var(--accent)', borderRadius: '4px', padding: '5px'}}
                                 >
                                     <option value="All">All Years</option>
                                     <option value="2024">2024</option>
                                     <option value="2025">2025</option>
                                     <option value="2026">2026</option>
+                                    <option value="2026">2027</option>
                                 </select>
                             </div>
                         </div>
@@ -117,7 +113,7 @@ const AdminDonations: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {loading ? (
+                                {loading?(
                                     <tr><td colSpan={5} className="no-data">Accessing Secure Data Tier...</td></tr>
                                 ) : filteredDonations.length === 0 ? (
                                     <tr><td colSpan={5} className="no-data">No records found for {selectedYear}</td></tr>
