@@ -74,13 +74,11 @@ const AdminProfile: React.FC = () => {
             <main className="dash-main">
                 <header className="dash-header">
                     <h2>Admin Account Settings</h2>
-                    <span className="header-badge">Identity Verified: JWT + MFA</span>
                 </header>
 
                 <div className="content-area">
                     <div className="security-notice" style={{ marginBottom: '20px' }}>
                         <div>
-                            <strong>Privileged Account Protection</strong>
                             <p>You are logged in as an Administrator.</p>
                         </div>
                     </div>
