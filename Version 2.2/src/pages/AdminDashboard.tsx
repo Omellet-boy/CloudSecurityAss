@@ -69,7 +69,6 @@ return(
             <main className="dash-main">
                 <header className="dash-header">
                     <h2>Admin Security Control Panel</h2>
-                    <span className="header-badge">Security Level: High</span>
                 </header>
 
                 <div className="content-area">
