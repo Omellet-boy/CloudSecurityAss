@@ -8,7 +8,6 @@ const AdminProfile: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    // States for inputs
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const[newPassword, setNewPassword] = useState('');
@@ -16,7 +15,6 @@ const AdminProfile: React.FC = () => {
     const[error, setError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    // Load initial data
     useEffect(() => {
         if (user) {
             setFullName(user.full_name || '');
@@ -30,20 +28,14 @@ const AdminProfile: React.FC = () => {
         setIsSaving(true);
 
         try {
-            // 1. Update Profile (Name & Email)
             await api.put('/users/update-profile', { full_name: fullName, email: email });
 
-            // 2. Update Password (Only if they typed something)
             if (newPassword) {
                 await api.put('/users/update-password', { newPassword });
             }
 
-            setMessage('✅ Account settings successfully updated and audited.');
-            setNewPassword(''); // Clear password field
-            
-            // Note: You would normally need to re-login to update the global 'user' state, 
-            // but this is perfect for the assignment demo!
-
+            setMessage('Account settings successfully updated and audited.');
+            setNewPassword(''); 
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to update settings.');
         } finally {
@@ -76,9 +68,7 @@ const AdminProfile: React.FC = () => {
                     <button className="nav-item" onClick={() => navigate('/admin')}>Admin Logs</button>
                 </nav>
 
-                <button className="logout-btn" onClick={logout}>
-                    <span>🚪</span> Sign Out
-                </button>
+                <button className="logout-btn" onClick={logout}>Sign Out</button>
             </aside>
 
             <main className="dash-main">
@@ -89,7 +79,6 @@ const AdminProfile: React.FC = () => {
 
                 <div className="content-area">
                     <div className="security-notice" style={{ marginBottom: '20px' }}>
-                        <div className="notice-icon">🔐</div>
                         <div>
                             <strong>Privileged Account Protection</strong>
                             <p>You are logged in as an Administrator.</p>
@@ -129,9 +118,8 @@ const AdminProfile: React.FC = () => {
                             />
                         </div>
 
-                        {/* EVIDENCE FOR TASK 5: DYNAMIC DATA MASKING */}
                         <div className="form-group">
-                            <label>Service Account Master Key (Masked - Lecture 3/5)</label>
+                            <label>Service Account Master Key</label>
                             <div className="masked" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                 <input type="text" readOnly value="AKIA-XXXX-XXXX-8812" style={{ flex: 1, fontFamily: 'monospace', color: 'var(--danger)', cursor: 'not-allowed', opacity: 0.8 }} />
                                 <span className="mask-tag">DDM ACTIVE</span>
